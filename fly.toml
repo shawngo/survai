@@ -6,7 +6,9 @@ app = "survai"
 primary_region = "iad"
 
 [build]
-builder = "docker"
+# Remove builder = "docker" to use Dockerfile directly
+# ya we're going to try without anything and let fly figure it out for now!
+# dockerfile = "./Dockerfile"
 
 [env]
 PORT = "3000"
