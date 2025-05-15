@@ -1,4 +1,4 @@
-use axum::{routing::post, Router, Json, extract::State};
+use axum::{routing::{get, post}, Router, Json, extract::State};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -21,19 +21,24 @@ struct VoteResponse {
     count: i64,
 }
 
+async fn health() -> &'static str {
+    "version 0.0.2"
+}
+
 async fn submit_vote(State(state): State<AppState>, Json(vote): Json<Vote>) -> Json<VoteResponse> {
+    println!("Received vote: poll_id={}, choice={}", vote.poll_id, vote.choice);
     let key = format!("poll:{}:{}", vote.poll_id, vote.choice);
     let mut votes = state.votes.lock().await;
     let count = votes.entry(key.clone()).or_insert(0);
     *count += 1;
 
-    // 10% chance of sassy response
     let status = if rand::random::<f32>() < 0.1 {
         format!("Vote for {} counted, Fort Atkinson legend!", vote.poll_id)
     } else {
         format!("Vote for {} recorded", vote.poll_id)
     };
 
+    println!("Returning: status={}, count={}", status, count);
     Json(VoteResponse { status, count: *count })
 }
 
@@ -44,6 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let app = Router::new()
+        .route("/", get(health))
         .route("/vote", post(submit_vote))
         .with_state(state);
 
